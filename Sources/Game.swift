@@ -45,7 +45,8 @@ class Game {
     // Start a new game
     func start() async {
         InputHandler.displayBanner()
-        print("Type 'exit' at any time to quit.\n")
+        print("Type 'exit' at any time to quit.")
+        print("Type 'help' for game instructions.\n")
         
         do {
             // Create a new game
@@ -79,6 +80,18 @@ class Game {
             if trimmedInput.lowercased() == "exit" {
                 await endGame()
                 break
+            }
+            
+            // Check for help command
+            if trimmedInput.lowercased() == "help" {
+                displayHelp()
+                continue
+            }
+            
+            // Check for example command
+            if trimmedInput.lowercased() == "example" {
+                displayExample()
+                continue
             }
             
             // Validate input
@@ -143,5 +156,34 @@ class Game {
         } else {
             await endGame()
         }
+    }
+    
+    // Display help information
+    private func displayHelp() {
+        print("\n📖 HELP:")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("• Enter a 4-digit code using digits 1-6")
+        print("• B = Correct digit in correct position")
+        print("• W = Correct digit in wrong position")
+        print("• Type 'example' to see example guesses")
+        print("• Type 'exit' to quit the game")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    }
+    
+    // Display example guesses
+    private func displayExample() {
+        print("\n💡 EXAMPLE:")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("If the secret code is: 1234")
+        print("")
+        print("Guess: 1235 → Response: BBB")
+        print("(Three correct digits in right place)")
+        print("")
+        print("Guess: 4321 → Response: WWWW")
+        print("(Four correct digits in wrong place)")
+        print("")
+        print("Guess: 5612 → Response: WW")
+        print("(Two correct digits in wrong place)")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
     }
 } 
