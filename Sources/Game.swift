@@ -51,7 +51,9 @@ class Game {
         do {
             // Create a new game
             print("Starting new game...")
-            gameId = try await apiClient.createGame()
+            gameId = try await NetworkReachability.retryWithBackoff {
+                try await self.apiClient.createGame()
+            }
             guessCount = 0
             print("Game started! Make your first guess.\n")
             
@@ -59,7 +61,10 @@ class Game {
             await gameLoop()
             
         } catch {
-            print("Error starting game: \(error.localizedDescription)")
+            print("❌ Error starting game: \(error.localizedDescription)")
+            if NetworkReachability.isNetworkError(error) {
+                print("Please check your internet connection and try again.")
+            }
         }
     }
     
@@ -102,7 +107,9 @@ class Game {
             
             do {
                 // Submit guess
-                let response = try await apiClient.submitGuess(gameId: gameId, guess: trimmedInput)
+                let response = try await NetworkReachability.retryWithBackoff {
+                    try await self.apiClient.submitGuess(gameId: gameId, guess: trimmedInput)
+                }
                 guessCount += 1
                 
                 // Format and display response
@@ -120,7 +127,11 @@ class Game {
                 print() // Empty line for better readability
                 
             } catch {
-                print("❌ Error: \(error.localizedDescription)\n")
+                print("❌ Error: \(error.localizedDescription)")
+                if NetworkReachability.isNetworkError(error) {
+                    print("Network connection issue. Please check your connection.")
+                }
+                print()
             }
         }
     }
