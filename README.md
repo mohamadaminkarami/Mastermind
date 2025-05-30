@@ -19,8 +19,16 @@ If the secret code is `1234`:
 ## Requirements
 
 - Swift 5.0 or later
-- macOS or Linux
+- macOS 12.0 or later
 - Internet connection (uses remote API)
+
+## Quick Start
+
+The easiest way to run the game is using the demo script:
+
+```bash
+./demo.sh
+```
 
 ## Building
 
@@ -34,10 +42,36 @@ swift build
 swift run
 ```
 
-## Commands
+## In-Game Commands
 
 - Enter a 4-digit guess (digits 1-6)
+- Type `help` for game instructions
+- Type `example` to see example guesses
 - Type `exit` to quit the game at any time
+
+## Project Structure
+
+```
+Mastermind/
+├── Sources/
+│   ├── main.swift          # Entry point
+│   ├── Game.swift          # Main game logic
+│   ├── APIClient.swift     # API communication
+│   ├── Models.swift        # Data models
+│   ├── InputHandler.swift  # Console I/O utilities
+│   └── NetworkReachability.swift  # Network error handling
+├── Package.swift           # Swift package configuration
+├── README.md              # This file
+└── demo.sh               # Demo script
+```
+
+## Features
+
+- Clean, colorful terminal UI with emoji support
+- Network error handling with automatic retry
+- Input validation and helpful error messages
+- Game statistics tracking
+- Play again functionality
 
 ## API
 
