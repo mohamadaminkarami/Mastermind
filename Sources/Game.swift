@@ -5,9 +5,7 @@ class Game {
     private var gameId: String?
     private var guessCount = 0
     
-    // Validate user input
     private func isValidGuess(_ guess: String) -> Bool {
-        // Check if it's exactly 4 digits
         guard guess.count == 4 else { return false }
         
         // Check if all characters are digits between 1 and 6
@@ -42,14 +40,12 @@ class Game {
         return result
     }
     
-    // Start a new game
     func start() async {
         InputHandler.displayBanner()
         print("Type 'exit' at any time to quit.")
         print("Type 'help' for game instructions.\n")
         
         do {
-            // Create a new game
             print("Starting new game...")
             gameId = try await NetworkReachability.retryWithBackoff {
                 try await self.apiClient.createGame()
@@ -57,18 +53,36 @@ class Game {
             guessCount = 0
             print("Game started! Make your first guess.\n")
             
-            // Start the game loop
             await gameLoop()
             
+        } catch let error as GameError {
+            await handleGameError(error)
         } catch {
-            print("❌ Error starting game: \(error.localizedDescription)")
-            if NetworkReachability.isNetworkError(error) {
-                print("Please check your internet connection and try again.")
-            }
+            print("❌ Unexpected error: \(error.localizedDescription)")
         }
     }
     
-    // Main game loop
+    private func handleGameError(_ error: GameError) async {
+        switch error {
+        case .networkError:
+            print("❌ \(error.localizedDescription)")
+            print("Please check your internet connection and try again.")
+        case .serverError:
+            print("❌ Server error: \(error.localizedDescription)")
+            print("The game server is having issues. Please try again later.")
+        case .gameNotFound:
+            print("❌ \(error.localizedDescription)")
+            print("Starting a new game...")
+            await start()
+        case .invalidInput:
+            print("❌ \(error.localizedDescription)")
+        case .apiError(let message):
+            print("❌ \(message)")
+        case .unknownError:
+            print("❌ \(error.localizedDescription)")
+        }
+    }
+    
     private func gameLoop() async {
         guard let gameId = gameId else { return }
         
@@ -81,42 +95,35 @@ class Game {
             
             let trimmedInput = input.trimmingCharacters(in: .whitespaces)
             
-            // Check for exit command
             if trimmedInput.lowercased() == "exit" {
                 await endGame()
                 break
             }
             
-            // Check for help command
             if trimmedInput.lowercased() == "help" {
                 displayHelp()
                 continue
             }
             
-            // Check for example command
             if trimmedInput.lowercased() == "example" {
                 displayExample()
                 continue
             }
             
-            // Validate input
             guard isValidGuess(trimmedInput) else {
                 print("❌ Invalid input! Please enter exactly 4 digits (1-6).\n")
                 continue
             }
             
             do {
-                // Submit guess
                 let response = try await NetworkReachability.retryWithBackoff {
                     try await self.apiClient.submitGuess(gameId: gameId, guess: trimmedInput)
                 }
                 guessCount += 1
                 
-                // Format and display response
                 let formattedResponse = formatResponse(response)
                 print("Response: \(formattedResponse)")
                 
-                // Check if the game is won
                 if response.black == 4 {
                     print("\n🎉 Congratulations! You won in \(guessCount) guesses! 🎉")
                     InputHandler.displayStats(guessCount: guessCount)
@@ -124,31 +131,32 @@ class Game {
                     break
                 }
                 
-                print() // Empty line for better readability
-                
-            } catch {
-                print("❌ Error: \(error.localizedDescription)")
-                if NetworkReachability.isNetworkError(error) {
-                    print("Network connection issue. Please check your connection.")
-                }
                 print()
+                
+            } catch let error as GameError {
+                await handleGameError(error)
+                if case .gameNotFound = error {
+                    break
+                }
+            } catch {
+                print("❌ Unexpected error: \(error.localizedDescription)")
             }
         }
     }
     
-    // End the current game
     private func endGame() async {
         guard let gameId = gameId else { return }
         
         do {
             try await apiClient.deleteGame(gameId: gameId)
             print("\n👋 Game ended. Thanks for playing!")
+        } catch let error as GameError {
+            await handleGameError(error)
         } catch {
-            print("\n❌ Error ending game: \(error.localizedDescription)")
+            print("\n❌ Unexpected error: \(error.localizedDescription)")
         }
     }
     
-    // Ask if the player wants to play again
     private func playAgain() async {
         guard let input = InputHandler.readInput(prompt: "\nWould you like to play again? (yes/no): ") else {
             await endGame()
@@ -158,18 +166,16 @@ class Game {
         let trimmedInput = input.lowercased().trimmingCharacters(in: .whitespaces)
         
         if trimmedInput == "yes" || trimmedInput == "y" {
-            // End current game first
             if let gameId = gameId {
                 try? await apiClient.deleteGame(gameId: gameId)
             }
-            // Start a new game
+            
             await start()
         } else {
             await endGame()
         }
     }
     
-    // Display help information
     private func displayHelp() {
         print("\n📖 HELP:")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -181,7 +187,6 @@ class Game {
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
     }
     
-    // Display example guesses
     private func displayExample() {
         print("\n💡 EXAMPLE:")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")

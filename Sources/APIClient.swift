@@ -4,7 +4,6 @@ class APIClient {
     private let baseURL = "https://mastermind.darkube.app"
     private let session = URLSession.shared
     
-    // Create a new game
     func createGame() async throws -> String {
         let url = URL(string: "\(baseURL)/game")!
         var request = URLRequest(url: url)
@@ -17,17 +16,20 @@ class APIClient {
             throw GameError.networkError("Invalid response")
         }
         
-        if httpResponse.statusCode == 200 {
+        switch httpResponse.statusCode {
+        case 200:
             let gameResponse = try JSONDecoder().decode(CreateGameResponse.self, from: data)
             return gameResponse.gameId
-        } else if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-            throw GameError.apiError(errorResponse.error)
-        } else {
-            throw GameError.apiError("Failed to create game")
+        case 500:
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw GameError.apiError(errorResponse.error)
+            }
+            throw GameError.serverError
+        default:
+            throw GameError.unknownError
         }
     }
     
-    // Submit a guess
     func submitGuess(gameId: String, guess: String) async throws -> GuessResponse {
         let url = URL(string: "\(baseURL)/guess")!
         var request = URLRequest(url: url)
@@ -43,34 +45,42 @@ class APIClient {
             throw GameError.networkError("Invalid response")
         }
         
-        if httpResponse.statusCode == 200 {
+        switch httpResponse.statusCode {
+        case 200:
             return try JSONDecoder().decode(GuessResponse.self, from: data)
-        } else if httpResponse.statusCode == 400 {
+        case 400:
             if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
                 throw GameError.apiError(errorResponse.error)
             }
             throw GameError.invalidInput
-        } else if httpResponse.statusCode == 404 {
-            throw GameError.apiError("Game not found")
-        } else {
-            throw GameError.apiError("Failed to submit guess")
+        case 404:
+            throw GameError.gameNotFound
+        default:
+            throw GameError.unknownError
         }
     }
     
-    // Delete a game
     func deleteGame(gameId: String) async throws {
         let url = URL(string: "\(baseURL)/game/\(gameId)")!
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         
-        let (_, response) = try await session.data(for: request)
+        let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw GameError.networkError("Invalid response")
         }
         
-        if httpResponse.statusCode != 204 && httpResponse.statusCode != 200 {
-            throw GameError.apiError("Failed to delete game")
+        switch httpResponse.statusCode {
+        case 204, 200, 404:  // 404 means game is already deleted, which is fine
+            return
+        case 500:
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw GameError.apiError(errorResponse.error)
+            }
+            throw GameError.serverError
+        default:
+            throw GameError.unknownError
         }
     }
 } 

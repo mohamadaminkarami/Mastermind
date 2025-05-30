@@ -1,9 +1,7 @@
 import Foundation
 
-// Utility for network-related operations
 class NetworkReachability {
     
-    // Retry an async operation with exponential backoff
     static func retryWithBackoff<T>(
         maxAttempts: Int = 3,
         initialDelay: TimeInterval = 1.0,
@@ -17,20 +15,23 @@ class NetworkReachability {
             } catch {
                 lastError = error
                 
-                // Don't retry on the last attempt
-                if attempt < maxAttempts - 1 {
-                    let delay = initialDelay * pow(2.0, Double(attempt))
-                    print("⏳ Network error. Retrying in \(Int(delay)) seconds... (Attempt \(attempt + 2)/\(maxAttempts))")
-                    
-                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                // Only retry on network errors
+                if let gameError = error as? GameError, isNetworkError(gameError) {
+                    // Don't retry on the last attempt
+                    if attempt < maxAttempts - 1 {
+                        let delay = initialDelay * pow(2.0, Double(attempt))
+                        print("⏳ Network error. Retrying in \(Int(delay)) seconds... (Attempt \(attempt + 2)/\(maxAttempts))")
+                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                        continue
+                    }
                 }
+                // For non-network errors, throw immediately
+                throw error
             }
         }
-        
         throw lastError ?? GameError.unknownError
     }
     
-    // Check if error is a network error
     static func isNetworkError(_ error: Error) -> Bool {
         if let urlError = error as? URLError {
             switch urlError.code {
@@ -38,6 +39,11 @@ class NetworkReachability {
                 return true
             default:
                 return false
+            }
+        }
+        if let gameError = error as? GameError {
+            if case .networkError = gameError {
+                return true
             }
         }
         return false
