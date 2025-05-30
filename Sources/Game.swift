@@ -5,9 +5,7 @@ class Game {
     private var gameId: String?
     private var guessCount = 0
     
-    // Validate user input
     private func isValidGuess(_ guess: String) -> Bool {
-        // Check if it's exactly 4 digits
         guard guess.count == 4 else { return false }
         
         // Check if all characters are digits between 1 and 6
@@ -60,11 +58,32 @@ class Game {
             // Start the game loop
             await gameLoop()
             
+        } catch let error as GameError {
+            await handleGameError(error)
         } catch {
-            print("❌ Error starting game: \(error.localizedDescription)")
-            if NetworkReachability.isNetworkError(error) {
-                print("Please check your internet connection and try again.")
-            }
+            print("❌ Unexpected error: \(error.localizedDescription)")
+        }
+    }
+    
+    // Handle game errors
+    private func handleGameError(_ error: GameError) async {
+        switch error {
+        case .networkError:
+            print("❌ \(error.localizedDescription)")
+            print("Please check your internet connection and try again.")
+        case .serverError:
+            print("❌ Server error: \(error.localizedDescription)")
+            print("The game server is having issues. Please try again later.")
+        case .gameNotFound:
+            print("❌ \(error.localizedDescription)")
+            print("Starting a new game...")
+            await start()
+        case .invalidInput:
+            print("❌ \(error.localizedDescription)")
+        case .apiError(let message):
+            print("❌ \(message)")
+        case .unknownError:
+            print("❌ \(error.localizedDescription)")
         }
     }
     
@@ -126,12 +145,13 @@ class Game {
                 
                 print() // Empty line for better readability
                 
-            } catch {
-                print("❌ Error: \(error.localizedDescription)")
-                if NetworkReachability.isNetworkError(error) {
-                    print("Network connection issue. Please check your connection.")
+            } catch let error as GameError {
+                await handleGameError(error)
+                if case .gameNotFound = error {
+                    break
                 }
-                print()
+            } catch {
+                print("❌ Unexpected error: \(error.localizedDescription)")
             }
         }
     }
@@ -143,8 +163,10 @@ class Game {
         do {
             try await apiClient.deleteGame(gameId: gameId)
             print("\n👋 Game ended. Thanks for playing!")
+        } catch let error as GameError {
+            await handleGameError(error)
         } catch {
-            print("\n❌ Error ending game: \(error.localizedDescription)")
+            print("\n❌ Unexpected error: \(error.localizedDescription)")
         }
     }
     

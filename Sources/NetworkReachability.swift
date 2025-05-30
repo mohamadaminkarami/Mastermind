@@ -17,16 +17,20 @@ class NetworkReachability {
             } catch {
                 lastError = error
                 
-                // Don't retry on the last attempt
-                if attempt < maxAttempts - 1 {
-                    let delay = initialDelay * pow(2.0, Double(attempt))
-                    print("⏳ Network error. Retrying in \(Int(delay)) seconds... (Attempt \(attempt + 2)/\(maxAttempts))")
-                    
-                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                // Only retry on network errors
+                if let gameError = error as? GameError, isNetworkError(gameError) {
+                    // Don't retry on the last attempt
+                    if attempt < maxAttempts - 1 {
+                        let delay = initialDelay * pow(2.0, Double(attempt))
+                        print("⏳ Network error. Retrying in \(Int(delay)) seconds... (Attempt \(attempt + 2)/\(maxAttempts))")
+                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                        continue
+                    }
                 }
+                // For non-network errors, throw immediately
+                throw error
             }
         }
-        
         throw lastError ?? GameError.unknownError
     }
     
@@ -38,6 +42,11 @@ class NetworkReachability {
                 return true
             default:
                 return false
+            }
+        }
+        if let gameError = error as? GameError {
+            if case .networkError = gameError {
+                return true
             }
         }
         return false

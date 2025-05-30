@@ -24,10 +24,19 @@ If the secret code is `1234`:
 
 ## Quick Start
 
-The easiest way to run the game is using the demo script:
+The easiest way to build and run the game is using the Makefile:
 
 ```bash
-./demo.sh
+make run
+```
+
+Other useful commands:
+
+```bash
+make build   # Build the game
+make clean   # Remove build artifacts
+make test    # Run tests (if any)
+make help    # Show Makefile help
 ```
 
 ## Building
@@ -62,7 +71,7 @@ Mastermind/
 │   └── NetworkReachability.swift  # Network error handling
 ├── Package.swift           # Swift package configuration
 ├── README.md              # This file
-└── demo.sh               # Demo script
+└── Makefile              # Build, run, clean, and test commands
 ```
 
 ## Features

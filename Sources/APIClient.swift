@@ -17,13 +17,17 @@ class APIClient {
             throw GameError.networkError("Invalid response")
         }
         
-        if httpResponse.statusCode == 200 {
+        switch httpResponse.statusCode {
+        case 200:
             let gameResponse = try JSONDecoder().decode(CreateGameResponse.self, from: data)
             return gameResponse.gameId
-        } else if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-            throw GameError.apiError(errorResponse.error)
-        } else {
-            throw GameError.apiError("Failed to create game")
+        case 500:
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw GameError.apiError(errorResponse.error)
+            }
+            throw GameError.serverError
+        default:
+            throw GameError.unknownError
         }
     }
     
@@ -43,17 +47,18 @@ class APIClient {
             throw GameError.networkError("Invalid response")
         }
         
-        if httpResponse.statusCode == 200 {
+        switch httpResponse.statusCode {
+        case 200:
             return try JSONDecoder().decode(GuessResponse.self, from: data)
-        } else if httpResponse.statusCode == 400 {
+        case 400:
             if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
                 throw GameError.apiError(errorResponse.error)
             }
             throw GameError.invalidInput
-        } else if httpResponse.statusCode == 404 {
-            throw GameError.apiError("Game not found")
-        } else {
-            throw GameError.apiError("Failed to submit guess")
+        case 404:
+            throw GameError.gameNotFound
+        default:
+            throw GameError.unknownError
         }
     }
     
@@ -63,14 +68,22 @@ class APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         
-        let (_, response) = try await session.data(for: request)
+        let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw GameError.networkError("Invalid response")
         }
         
-        if httpResponse.statusCode != 204 && httpResponse.statusCode != 200 {
-            throw GameError.apiError("Failed to delete game")
+        switch httpResponse.statusCode {
+        case 204, 200, 404:  // 404 means game is already deleted, which is fine
+            return
+        case 500:
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw GameError.apiError(errorResponse.error)
+            }
+            throw GameError.serverError
+        default:
+            throw GameError.unknownError
         }
     }
 } 

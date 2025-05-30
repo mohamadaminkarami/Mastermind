@@ -35,6 +35,8 @@ enum GameError: Error, LocalizedError {
     case invalidInput
     case networkError(String)
     case apiError(String)
+    case gameNotFound
+    case serverError
     case unknownError
     
     var errorDescription: String? {
@@ -44,9 +46,13 @@ enum GameError: Error, LocalizedError {
         case .networkError(let message):
             return "Network error: \(message)"
         case .apiError(let message):
-            return "API error: \(message)"
+            return message
+        case .gameNotFound:
+            return "Game not found. Please start a new game."
+        case .serverError:
+            return "Server error. Please try again later."
         case .unknownError:
-            return "An unknown error occurred."
+            return "An unknown error occurred. Please try again."
         }
     }
 } 
