@@ -44,13 +44,8 @@ class Game {
     
     // Start a new game
     func start() async {
-        print("Welcome to Mastermind!")
-        print("======================")
-        print("Game Rules:")
-        print("- Guess a 4-digit code (digits 1-6)")
-        print("- B = Correct digit in correct position")
-        print("- W = Correct digit in wrong position")
-        print("- Type 'exit' to quit\n")
+        InputHandler.displayBanner()
+        print("Type 'exit' at any time to quit.\n")
         
         do {
             // Create a new game
@@ -72,27 +67,29 @@ class Game {
         guard let gameId = gameId else { return }
         
         while true {
-            print("Guess #\(guessCount + 1): ", terminator: "")
-            
-            guard let input = readLine()?.trimmingCharacters(in: .whitespaces) else {
+            // Use InputHandler for better input handling
+            guard let input = InputHandler.readInput(prompt: "Guess #\(guessCount + 1): ") else {
+                print("\nError reading input. Please try again.")
                 continue
             }
             
+            let trimmedInput = input.trimmingCharacters(in: .whitespaces)
+            
             // Check for exit command
-            if input.lowercased() == "exit" {
+            if trimmedInput.lowercased() == "exit" {
                 await endGame()
                 break
             }
             
             // Validate input
-            guard isValidGuess(input) else {
-                print("Invalid input! Please enter exactly 4 digits (1-6).\n")
+            guard isValidGuess(trimmedInput) else {
+                print("❌ Invalid input! Please enter exactly 4 digits (1-6).\n")
                 continue
             }
             
             do {
                 // Submit guess
-                let response = try await apiClient.submitGuess(gameId: gameId, guess: input)
+                let response = try await apiClient.submitGuess(gameId: gameId, guess: trimmedInput)
                 guessCount += 1
                 
                 // Format and display response
@@ -101,7 +98,8 @@ class Game {
                 
                 // Check if the game is won
                 if response.black == 4 {
-                    print("\nCongratulations! You won in \(guessCount) guesses! 🎉")
+                    print("\n🎉 Congratulations! You won in \(guessCount) guesses! 🎉")
+                    InputHandler.displayStats(guessCount: guessCount)
                     await playAgain()
                     break
                 }
@@ -109,7 +107,7 @@ class Game {
                 print() // Empty line for better readability
                 
             } catch {
-                print("Error: \(error.localizedDescription)\n")
+                print("❌ Error: \(error.localizedDescription)\n")
             }
         }
     }
@@ -120,22 +118,22 @@ class Game {
         
         do {
             try await apiClient.deleteGame(gameId: gameId)
-            print("\nGame ended. Thanks for playing!")
+            print("\n👋 Game ended. Thanks for playing!")
         } catch {
-            print("\nError ending game: \(error.localizedDescription)")
+            print("\n❌ Error ending game: \(error.localizedDescription)")
         }
     }
     
     // Ask if the player wants to play again
     private func playAgain() async {
-        print("\nWould you like to play again? (yes/no): ", terminator: "")
-        
-        guard let input = readLine()?.lowercased().trimmingCharacters(in: .whitespaces) else {
+        guard let input = InputHandler.readInput(prompt: "\nWould you like to play again? (yes/no): ") else {
             await endGame()
             return
         }
         
-        if input == "yes" || input == "y" {
+        let trimmedInput = input.lowercased().trimmingCharacters(in: .whitespaces)
+        
+        if trimmedInput == "yes" || trimmedInput == "y" {
             // End current game first
             if let gameId = gameId {
                 try? await apiClient.deleteGame(gameId: gameId)
