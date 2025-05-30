@@ -1,13 +1,11 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
-
 import Foundation
 
-// Main entry point
-@main
-struct MastermindApp {
-    static func main() async {
-        let game = Game()
-        await game.start()
-    }
+// Create and run the game
+Task {
+    let game = Game()
+    await game.start()
+    exit(0)
 }
+
+// Keep the program running
+RunLoop.main.run() 
