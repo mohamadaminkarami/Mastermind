@@ -48,18 +48,6 @@ clean:
 	@rm -rf $(BUILD_DIR)
 	@echo "${GREEN}✅ Clean complete!${NC}"
 
-# Run tests
-.PHONY: test
-test:
-	@echo "${YELLOW}🧪 Running tests...${NC}"
-	@$(SWIFT) test
-	@if [ $$? -eq 0 ]; then \
-		echo "${GREEN}✅ All tests passed!${NC}"; \
-	else \
-		echo "${RED}❌ Some tests failed. Please check the error messages above.${NC}"; \
-		exit 1; \
-	fi
-
 # Show help
 .PHONY: help
 help:

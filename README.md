@@ -35,7 +35,6 @@ Other useful commands:
 ```bash
 make build   # Build the game
 make clean   # Remove build artifacts
-make test    # Run tests (if any)
 make help    # Show Makefile help
 ```
 
@@ -73,15 +72,3 @@ Mastermind/
 ├── README.md              # This file
 └── Makefile              # Build, run, clean, and test commands
 ```
-
-## Features
-
-- Clean, colorful terminal UI with emoji support
-- Network error handling with automatic retry
-- Input validation and helpful error messages
-- Game statistics tracking
-- Play again functionality
-
-## API
-
-This game uses the Mastermind API at https://mastermind.darkube.app/docs/index.html 
